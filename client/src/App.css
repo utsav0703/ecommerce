@@ -1,0 +1,191 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+  color: #222;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 30px 20px;
+}
+
+.auth-container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.main-title,
+.logo-title {
+  margin: 0 0 10px 0;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.main-title {
+  text-align: center;
+  font-size: 40px;
+}
+
+.logo-title {
+  font-size: 30px;
+}
+
+.welcome-text {
+  margin: 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.section-title {
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.message {
+  min-height: 24px;
+  text-align: center;
+  font-weight: 600;
+  color: #16a34a;
+  margin: 15px 0 20px;
+}
+
+.toggle-buttons,
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toggle-buttons {
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.product-card h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #111827;
+}
+
+.product-card p {
+  margin: 8px 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.seller-form-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+input,
+select,
+textarea,
+button {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid #d1d5db;
+  outline: none;
+  font-family: Arial, sans-serif;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb;
+}
+
+button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+button.active {
+  background: #111827;
+}
+
+.remove-btn {
+  background: #dc2626;
+  margin-top: 10px;
+}
+
+.remove-btn:hover {
+  background: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .main-title {
+    font-size: 30px;
+  }
+
+  .logo-title {
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .welcome-text {
+    text-align: center;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
