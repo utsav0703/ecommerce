@@ -66,6 +66,7 @@ app.post('/users', async (req, res) => {
   }
 });
 
+// Unified route for adding products
 app.post('/products', async (req, res) => {
   try {
     const {
@@ -78,12 +79,24 @@ app.post('/products', async (req, res) => {
       image_url
     } = req.body;
 
+    console.log('Incoming product request:', req.body);
+
     const [result] = await pool.query(
-      `INSERT INTO products
-      (seller_id, product_name, description, price, stock, category, image_url)
+      `INSERT INTO products 
+      (seller_id, product_name, description, price, stock, category, image_url) 
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [seller_id, product_name, description, price, stock, category, image_url]
+      [
+        seller_id, 
+        product_name, 
+        description, 
+        parseFloat(price), 
+        parseInt(stock), 
+        category, 
+        image_url
+      ]
     );
+
+    console.log('Product added with ID:', result.insertId);
 
     res.status(201).json({
       success: true,
@@ -91,6 +104,7 @@ app.post('/products', async (req, res) => {
       productId: result.insertId
     });
   } catch (error) {
+    console.error('SERVER ERROR (Add Product):', error.message);
     res.status(500).json({
       success: false,
       message: 'Failed to add product',
@@ -379,36 +393,7 @@ app.delete('/cart/remove/:cartItemId', async (req, res) => {
   }
 });
 
-app.post('/products/add', async (req, res) => {
-  try {
-    const {
-      seller_id,
-      product_name,
-      description,
-      price,
-      stock,
-      category
-    } = req.body;
-
-    const [result] = await pool.query(
-      `INSERT INTO products (seller_id, product_name, description, price, stock, category)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [seller_id, product_name, description, price, stock, category]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Product added successfully',
-      productId: result.insertId
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add product',
-      error: error.message
-    });
-  }
-});
+// Redundant route removed (using /products instead)
 
 const PORT = process.env.PORT || 5000;
 

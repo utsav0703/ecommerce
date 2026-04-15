@@ -9,6 +9,8 @@ function App() {
   const [cartItems, setCartItems] = useState([]);
   const [page, setPage] = useState('products');
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [signupData, setSignupData] = useState({
     full_name: '',
@@ -28,8 +30,45 @@ function App() {
     description: '',
     price: '',
     stock: '',
-    category: ''
+    category: '',
+    image_url: ''
   });
+
+  // Helper to ensure image URLs are direct and render-friendly
+  const getCleanImageUrl = (url) => {
+    if (!url) return 'https://placehold.co/400x400?text=No+Image';
+    
+    let cleanUrl = url.trim();
+
+    // Handle Unsplash page links (e.g., unsplash.com/photos/XYZ or unsplash.com/photos/descriptive-text-XYZ)
+    if (cleanUrl.includes('unsplash.com/photos/')) {
+      const parts = cleanUrl.split('/');
+      const idPart = parts[parts.length - 1];
+      // Unsplash IDs are usually the last alphanumeric part
+      const idMatch = idPart.match(/([a-zA-Z0-9_-]+)$/);
+      const id = idMatch ? idMatch[1] : idPart;
+      
+      // If it doesn't already look like a photo ID (starting with photo-), 
+      // we still try to use it as an ID for the images domain
+      if (!id.startsWith('photo-')) {
+        return `https://images.unsplash.com/photo-${id}?q=80&w=800&auto=format&fit=crop`;
+      }
+      return `https://images.unsplash.com/${id}?q=80&w=800&auto=format&fit=crop`;
+    }
+
+    // Auto-fix Unsplash direct links missing parameters
+    if (cleanUrl.includes('unsplash.com/photo-') && !cleanUrl.includes('?')) {
+      return `${cleanUrl}?q=80&w=800&auto=format&fit=crop`;
+    }
+
+    return cleanUrl;
+  };
+
+  const showMessage = (msg, type = 'success') => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => setMessage(''), 4000);
+  };
 
   const handleSignupChange = (e) => {
     setSignupData({ ...signupData, [e.target.name]: e.target.value });
@@ -47,7 +86,7 @@ function App() {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:5000/signup', signupData);
-      setMessage(response.data.message);
+      showMessage(response.data.message);
       setMode('login');
       setSignupData({
         full_name: '',
@@ -57,7 +96,7 @@ function App() {
         role: 'customer'
       });
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Signup failed');
+      showMessage(error.response?.data?.message || 'Signup failed', 'error');
     }
   };
 
@@ -66,10 +105,10 @@ function App() {
     try {
       const response = await axios.post('http://localhost:5000/login', loginData);
       setUser(response.data.user);
-      setMessage(response.data.message);
+      showMessage(response.data.message);
       setPage('products');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Login failed');
+      showMessage(error.response?.data?.message || 'Login failed', 'error');
     }
   };
 
@@ -78,7 +117,7 @@ function App() {
     setProducts([]);
     setCartItems([]);
     setLoginData({ email: '', password: '' });
-    setMessage('Logged out successfully');
+    showMessage('Logged out successfully');
   };
 
   const fetchProducts = async () => {
@@ -87,7 +126,7 @@ function App() {
       setProducts(response.data.products);
     } catch (error) {
       console.error('Error fetching products:', error);
-      setMessage('Failed to load products');
+      showMessage('Failed to load products', 'error');
     }
   };
 
@@ -97,7 +136,7 @@ function App() {
       setCartItems(response.data.cartItems);
     } catch (error) {
       console.error('Error fetching cart:', error);
-      setMessage('Failed to load cart');
+      showMessage('Failed to load cart', 'error');
     }
   };
 
@@ -109,47 +148,55 @@ function App() {
         quantity: 1
       });
 
-      setMessage('Product added to cart');
+      showMessage('Product added to cart');
       fetchCart(user.user_id);
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Failed to add to cart');
+      showMessage(error.response?.data?.message || 'Failed to add to cart', 'error');
     }
   };
 
   const removeFromCart = async (cartItemId) => {
     try {
       await axios.delete(`http://localhost:5000/cart/remove/${cartItemId}`);
-      setMessage('Item removed from cart');
+      showMessage('Item removed from cart');
       fetchCart(user.user_id);
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Failed to remove item');
+      showMessage(error.response?.data?.message || 'Failed to remove item', 'error');
     }
   };
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
-      const response = await axios.post('http://localhost:5000/products/add', {
+      const response = await axios.post('http://localhost:5000/products', {
         seller_id: user.user_id,
         product_name: productData.product_name,
         description: productData.description,
-        price: productData.price,
-        stock: productData.stock,
-        category: productData.category
+        price: parseFloat(productData.price),
+        stock: parseInt(productData.stock),
+        category: productData.category,
+        image_url: getCleanImageUrl(productData.image_url)
       });
 
-      setMessage(response.data.message);
+      showMessage(response.data.message);
       setProductData({
         product_name: '',
         description: '',
         price: '',
         stock: '',
-        category: ''
+        category: '',
+        image_url: ''
       });
       fetchProducts();
       setPage('products');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Failed to add product');
+      console.error('Client Submit Error:', error);
+      showMessage(error.response?.data?.message || 'Failed to add product', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,8 +211,12 @@ function App() {
     return (
       <div className="app">
         <div className="auth-container">
-          <h1 className="main-title">E-Commerce Website</h1>
-          <p className="message">{message}</p>
+          <h1 className="main-title">🛒 ShopVerse</h1>
+          <p className="subtitle">Your one-stop shopping destination</p>
+
+          {message && (
+            <p className={`message ${messageType}`}>{message}</p>
+          )}
 
           <div className="toggle-buttons">
             <button
@@ -184,7 +235,7 @@ function App() {
 
           {mode === 'signup' ? (
             <form className="card form-card" onSubmit={handleSignup}>
-              <h2>Signup</h2>
+              <h2>Create Account</h2>
               <input
                 type="text"
                 name="full_name"
@@ -228,7 +279,7 @@ function App() {
             </form>
           ) : (
             <form className="card form-card" onSubmit={handleLogin}>
-              <h2>Login</h2>
+              <h2>Welcome Back</h2>
               <input
                 type="email"
                 name="email"
@@ -258,9 +309,9 @@ function App() {
       <div className="dashboard-container">
         <div className="topbar">
           <div>
-            <h1 className="logo-title">E-Commerce Website</h1>
+            <h1 className="logo-title">🛒 ShopVerse</h1>
             <p className="welcome-text">
-              Welcome, {user.full_name} ({user.role})
+              Welcome, <strong>{user.full_name}</strong> <span className="role-badge">{user.role}</span>
             </p>
           </div>
 
@@ -269,7 +320,7 @@ function App() {
               className={page === 'products' ? 'active' : ''}
               onClick={() => setPage('products')}
             >
-              Products
+              🏪 Products
             </button>
 
             {user.role === 'customer' && (
@@ -277,7 +328,7 @@ function App() {
                 className={page === 'cart' ? 'active' : ''}
                 onClick={() => setPage('cart')}
               >
-                Cart
+                🛒 Cart ({cartItems.length})
               </button>
             )}
 
@@ -286,36 +337,59 @@ function App() {
                 className={page === 'addProduct' ? 'active' : ''}
                 onClick={() => setPage('addProduct')}
               >
-                Add Product
+                ➕ Add Product
               </button>
             )}
 
-            <button onClick={handleLogout}>Logout</button>
+            <button className="logout-btn" onClick={handleLogout}>🚪 Logout</button>
           </div>
         </div>
 
-        <p className="message">{message}</p>
+        {message && (
+          <p className={`message ${messageType}`}>{message}</p>
+        )}
 
         {page === 'products' && (
           <>
             <h2 className="section-title">Available Products</h2>
             <div className="product-grid">
               {products.length === 0 ? (
-                <p>No products found</p>
+                <div className="empty-state">
+                  <p>🛍️ No products available yet</p>
+                </div>
               ) : (
                 products.map((product) => (
-                  <div key={product.product_id} className="card product-card">
-                    <h3>{product.product_name}</h3>
-                    <p>{product.description}</p>
-                    <p><strong>Category:</strong> {product.category}</p>
-                    <p><strong>Stock:</strong> {product.stock}</p>
-                    <p><strong>Price:</strong> ₹{product.price}</p>
-
-                    {user.role === 'customer' && (
-                      <button onClick={() => addToCart(product.product_id)}>
-                        Add to Cart
-                      </button>
-                    )}
+                  <div key={product.product_id} className="product-card">
+                    <div className="product-image-wrapper">
+                      <img
+                        src={getCleanImageUrl(product.image_url)}
+                        alt={product.product_name}
+                        className="product-image"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://placehold.co/400x400?text=Image+Not+Found';
+                        }}
+                      />
+                    </div>
+                    <div className="product-info">
+                      <h3 className="product-name">{product.product_name}</h3>
+                      <p className="product-description">{product.description}</p>
+                      <span className="product-category">{product.category}</span>
+                      <p className="product-price">₹{Number(product.price).toLocaleString('en-IN')}</p>
+                      <p className="product-stock">
+                        {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+                      </p>
+                      {user.role === 'customer' && (
+                        <button
+                          className="add-to-cart-btn"
+                          onClick={() => addToCart(product.product_id)}
+                          disabled={product.stock <= 0}
+                        >
+                          Add to Cart
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -328,20 +402,24 @@ function App() {
             <h2 className="section-title">Your Cart</h2>
             <div className="product-grid">
               {cartItems.length === 0 ? (
-                <p>Your cart is empty</p>
+                <div className="empty-state">
+                  <p>🛒 Your cart is empty</p>
+                </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.cart_item_id} className="card product-card">
-                    <h3>{item.product_name}</h3>
-                    <p><strong>Price:</strong> ₹{item.price}</p>
-                    <p><strong>Quantity:</strong> {item.quantity}</p>
-                    <p><strong>Total:</strong> ₹{item.total_price}</p>
-                    <button
-                      className="remove-btn"
-                      onClick={() => removeFromCart(item.cart_item_id)}
-                    >
-                      Remove from Cart
-                    </button>
+                  <div key={item.cart_item_id} className="product-card cart-card">
+                    <div className="product-info">
+                      <h3 className="product-name">{item.product_name}</h3>
+                      <p className="product-price">₹{Number(item.price).toLocaleString('en-IN')}</p>
+                      <p className="cart-quantity">Quantity: {item.quantity}</p>
+                      <p className="cart-total">Total: ₹{Number(item.total_price).toLocaleString('en-IN')}</p>
+                      <button
+                        className="remove-btn"
+                        onClick={() => removeFromCart(item.cart_item_id)}
+                      >
+                        Remove from Cart
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -371,7 +449,7 @@ function App() {
               <input
                 type="number"
                 name="price"
-                placeholder="Price"
+                placeholder="Price (₹)"
                 value={productData.price}
                 onChange={handleProductChange}
                 required
@@ -379,7 +457,7 @@ function App() {
               <input
                 type="number"
                 name="stock"
-                placeholder="Stock"
+                placeholder="Stock Quantity"
                 value={productData.stock}
                 onChange={handleProductChange}
                 required
@@ -392,7 +470,34 @@ function App() {
                 onChange={handleProductChange}
                 required
               />
-              <button type="submit">Add Product</button>
+              <input
+                type="url"
+                name="image_url"
+                placeholder="Image URL (https://...)"
+                value={productData.image_url}
+                onChange={handleProductChange}
+                required
+              />
+              {productData.image_url && (
+                <div className="image-preview">
+                  <p>Image Preview:</p>
+                  <img
+                    src={getCleanImageUrl(productData.image_url)}
+                    alt="Preview"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://placehold.co/400x400?text=Preview+Not+Available';
+                    }}
+                  />
+                </div>
+              )}
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className={isSubmitting ? 'submitting' : ''}
+              >
+                {isSubmitting ? 'Adding Product...' : 'Add Product'}
+              </button>
             </form>
           </div>
         )}
